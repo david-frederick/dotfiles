@@ -19,6 +19,7 @@ alias gf="git fetch"
 alias gl="git pull"
 alias gp="git push"
 alias gb="git branch"
+alias gco="git checkout"
 
 # Detect which `ls` flavor is in use
 if ls --color > /dev/null 2>&1; then # GNU `ls`
@@ -49,9 +50,6 @@ alias egrep='egrep --color=auto'
 
 # Enable aliases to be sudo’ed
 alias sudo='sudo '
-
-# Get deploy tag
-alias tag="$(date +"%Y-%m-%d-%H%M-DF")"
 
 # Get macOS Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages
 # alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm install npm -g; npm update -g; sudo gem update --system; sudo gem update; sudo gem cleanup'

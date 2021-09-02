@@ -5,6 +5,37 @@ function mkd() {
 	mkdir -p "$@" && cd "$_";
 }
 
+function tag() {
+	branch=$(tag_branch)
+	date=$(date +"%Y-%m-%d-%H%M-DF")
+	tag="$branch-$date"
+	echo $tag
+	git tag $tag
+	git push origin tag $tag
+}
+
+# Generate a tag prefix based on current branch name
+function tag_branch() {
+	branch=$(exec git rev-parse --abbrev-ref HEAD)
+	case $branch in
+		master)
+			echo -n "PROD"
+			;;
+		staging)
+			echo -n "STAG"
+			;;
+		sandbox)
+			echo -n "SB"
+			;;
+		demo)
+			echo -n "DEMO"
+			;;
+		*)
+		  echo -n "WRONG-BRANCH"
+			;;
+	esac
+}
+
 # Change working directory to the top-most Finder window location
 # function cdf() { # short for `cdfinder`
 # 	cd "$(osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')";
