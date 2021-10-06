@@ -5,6 +5,7 @@ function mkd() {
 	mkdir -p "$@" && cd "$_";
 }
 
+# generate a tag and push it to git origin
 function tag() {
 	branch=$(tag_branch)
 	date=$(date +"%Y-%m-%d-%H%M-DF")

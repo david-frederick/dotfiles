@@ -1,5 +1,4 @@
-" Use the Solarized Dark theme
+" Use the Slate theme
+" because I couldn't get the background correct on Solarized
 set background=dark
-colorscheme solarized
-let g:solarized_termtrans=1
- 
+colorscheme slate
