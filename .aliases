@@ -22,6 +22,10 @@ alias gb="git branch"
 alias gco="git checkout"
 alias gd="git diff"
 
+alias bi="bundle install"
+alias be="bundle exec"
+alias bu="bundle update"
+
 # Detect which `ls` flavor is in use
 if ls --color > /dev/null 2>&1; then # GNU `ls`
 	colorflag="--color"
