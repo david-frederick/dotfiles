@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+function dependencies(){
+  repo=$1
+  possible=("models" "megafactory" "api_client")
+  for dependency in ${possible[@]}; do
+    if [[ $(bundle exec gem list $dependency -i) == 'true' ]]; then
+      echo "Includes $dependency"
+    fi
+  done
+}
+
 function new_release() {
   last=$(latest_release)
   old_patch=$(get_patch $last)
