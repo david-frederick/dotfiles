@@ -1,5 +1,71 @@
 #!/usr/bin/env bash
 
+function new_release() {
+  last=$(latest_release)
+  old_patch=$(get_patch $last)
+  patch="$(($old_patch + 1))"
+  new="REL-$(get_major $last).$(get_minor $last).$patch-"
+  echo $new
+}
+
+function latest_release() {
+	repos=("listen360" "gatekeeper" "legacy_dashboards" "feedback" "dashboards" "api" "api_client" "js_api_client" "reports" "alexandria")
+	latest=()
+
+	for repo in ${repos[@]}; do
+		cd ~/development/$repo
+		latest+="$(latest_release_from_repo) "
+	done
+  cd ~/development
+  # echo ${latest[@]}
+  echo $(max_semver ${latest[@]})
+}
+
+function latest_release_from_repo() {
+  echo $(max_semver $(releases_from_repo))
+}
+
+function max_semver() {
+  max="0.0.0"
+
+  releases=("$@")
+
+  for release in ${releases[@]}; do
+    major=$(get_major $release)
+    minor=$(get_minor $release)
+    patch=$(get_patch $release)
+    max_major=$(get_major $max)
+    max_minor=$(get_minor $max)
+    max_patch=$(get_patch $max)
+
+    if (($major > $max_major)); then
+      max=$release
+    elif (( $major == $max_major && $minor > $max_minor )); then
+      max=$release
+    elif (( $major == $max_major && $minor == $max_minor && $patch > $max_patch )); then
+      max=$release
+    fi
+  done
+
+  echo $max
+}
+
+function get_major() {
+  echo $1 | grep -E "(^\d+)" -o
+}
+
+function get_minor() {
+  echo $1 | grep -E "\.\d+\." -o | grep -E "\d+" -o
+}
+
+function get_patch() {
+  echo $1 | grep -E "\d+$" -o
+}
+
+function releases_from_repo() {
+  git for-each-ref --shell --format='%(refname)' refs/heads/REL-* | grep -E "(\d+\.\d+\.\d+)" -o
+}
+
 # Create a new directory and enter it
 function mkd() {
 	mkdir -p "$@" && cd "$_";

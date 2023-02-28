@@ -54,3 +54,9 @@ complete -W "NSGlobalDomain" defaults;
 
 # Load postgres into path
 export PATH="$PATH:/usr/local/opt/postgresql@12/bin"
+
+# Terraform on path
+export PATH="/usr/local/opt/terraform@0.11/bin:$PATH"
+
+# aws-login.rb
+export AWS_MFA_ARN="arn:aws:iam::628424094948:mfa/david.frederick@listen360.com"
