@@ -1,13 +1,169 @@
 #!/usr/bin/env bash
+DEVPATH="/Users/davidfrederick/development"
+REPOS=("listen360" "gatekeeper" "legacy_dashboards" "feedback" "dashboards" "api" "api_client" "models" "megafactory" "js_api_client" "reports" "alexandria")
+RUBY_APPS=("listen360" "gatekeeper" "legacy_dashboards" "feedback" "dashboards" "api")
+RUBY_LIBS=("models" "megafactory" "api_client")
 
-function dependencies(){
-  repo=$1
-  possible=("models" "megafactory" "api_client")
-  for dependency in ${possible[@]}; do
+function bump() {
+  branch=$1
+
+  # Validate branch name
+  if [[ $1 == "" ]]; then
+    echo "ERROR: branch name required"
+    echo "  Which branch are you bumping?"
+    return 0
+  elif [[ $1 != "develop" ]]; then
+    echo "ERROR: invalid branch"
+    echo "  This tool only supports the 'develop' branch"
+    echo "  ...for now"
+    return 0
+  fi
+
+  # General description of what the tool does
+  echo "This tool will do the following in all Listen360 Ruby-on-Rails repos:"
+  echo "  - Stash all uncommitted changes"
+  echo "  - Checkout the latest version of the $1 branch"
+  echo "  - Install any changes present in 'bundle install'"
+  echo "  - Run 'bundle update' for any dependency libraries"
+  echo "      Ex: models, api_client"
+
+  # Prompting for confirmation
+  echo ""
+  echo "Are you sure you wish to continue? (y/n)"
+  read confirmation
+  if [[ $confirmation != "y" ]]; then
+    echo "Cancelling..."
+    return 0
+  fi
+
+  affected=()
+
+  # Cleanup dependency repos
+  for lib in ${RUBY_LIBS[@]}; do
+    cd $(echo "$DEVPATH/$lib")
+    echo "Repo: $lib"
+    cleanup=$(cleanup_repo $branch)
+
+    # confirm no problems during cleanup
+    if [[ $cleanup == 0 ]]; then
+      echo "--- There was a problem in $lib ---"
+      echo "Operation halted"
+      return 0
+    fi
+
+    changes=$(git diff-index HEAD --)
+    if [[ $changes != "" ]]; then
+      affected+="$lib "
+    fi
+
+    echo ""
+  done
+
+  # cleanup and bump rails repos
+  for repo in ${RUBY_APPS[@]}; do
+		cd $(echo "$DEVPATH/$repo")
+    echo "REPO: $repo"
+    cleanup=$(cleanup_repo $branch)
+
+    # confirm no problems during cleanup
+    if [[ $cleanup == 0 ]]; then
+      echo "--- There was a problem in $lib ---"
+      echo "Operation halted"
+      return 0
+    fi
+
+    # Run 'bundle update blah'
+    $(bump_dependencies)
+
+    # Identify if the repo has updates
+    changes=$(git diff-index HEAD --)
+    if [[ $changes != "" ]]; then
+      affected+="$repo "
+    fi
+
+    echo ""
+  done
+
+  echo "The following repos have uncommitted changes:"
+  for repo in ${affected[@]}; do
+    echo "  $repo"
+  done
+
+  cd $(echo $DEVPATH)
+}
+
+function bump_dependencies() {
+  dependencies=$(get_dependencies)
+
+  echo "  Dependencies:" >&2
+  echo "    ${dependencies[*]}" >&2
+  echo "      Running 'bundle update ${dependencies[*]}'" >&2
+
+  bu=$(bundle update $dependencies --quiet)
+
+  if [[ $bu == "" ]]; then
+    echo "      dependencies updated" >&2
+    return 1
+  else
+    echo "==== problem updating dependencies ====" >&2
+    echo $bu
+    return 0
+  fi
+}
+
+function cleanup_repo() {
+  echo "  Cleanup:" >&2
+  stash="$(stash_uncommitted)"
+  co="$(checkout_latest $1)"
+  bi="$(install_gems)"
+
+  return $stash && $co && $bi
+}
+
+function install_gems() {
+  echo "    Running 'bundle install'" >&2
+  bi=$(bundle install --quiet)
+  if [[ $bi == "" ]]; then
+    echo "      gems installed successfully" >&2
+    return 1
+  else
+    echo "==== problem installing gems ====" >&2
+    echo $bi
+    return 0
+  fi
+}
+
+function checkout_latest() {
+  echo "    Checking out latest branch: $1" >&2
+  current="$(git symbolic-ref HEAD 2>/dev/null)"
+  current=${current##refs/heads/}
+  if [[ $1 == $current ]]; then
+    echo "      Already on '$1'" >&2
+  else
+    co=$(git checkout $1 2> /dev/null)
+    echo "      $co" >&2
+  fi
+  
+  pull=$(git fetch && git pull origin)
+  echo "      $pull" >&2
+  return 1
+}
+
+function stash_uncommitted() {
+  echo "    Stashing all uncommited changes" >&2
+  stash=$(git stash --include-untracked)
+  echo "      $stash" >&2
+  return 1
+}
+
+function get_dependencies() {
+  actual=()
+  for dependency in ${RUBY_LIBS[@]}; do
     if [[ $(bundle exec gem list $dependency -i) == 'true' ]]; then
-      echo "Includes $dependency"
+      actual+="$dependency "
     fi
   done
+  echo $actual
 }
 
 function new_release() {
@@ -19,10 +175,9 @@ function new_release() {
 }
 
 function latest_release() {
-	repos=("listen360" "gatekeeper" "legacy_dashboards" "feedback" "dashboards" "api" "api_client" "js_api_client" "reports" "alexandria")
 	latest=()
 
-	for repo in ${repos[@]}; do
+	for repo in ${REPOS[@]}; do
 		cd ~/development/$repo
 		latest+="$(latest_release_from_repo) "
 	done
